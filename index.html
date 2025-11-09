@@ -4,47 +4,53 @@
   <meta charset="utf-8">
   <title>Shawnee Wrestling 2024-25</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Rajdhani:wght@600&display=swap" rel="stylesheet">
   <style>
-    body { margin:0; background:#0f0f0f; color:#fff; font-family:'Rajdhani',sans-serif; text-align:center; }
-    header { background:linear-gradient(135deg,#003366,#000); padding:2rem; }
-    h1 { font-family:'Orbitron',sans-serif; font-size:3rem; margin:0; }
-    .record { font-size:4rem; color:#00ff41; }
-    .update { color:#00ff41; font-size:0.9rem; }
-    table { width:90%; max-width:800px; margin:2rem auto; border-collapse:collapse; background:#111; }
-    th { background:#003366; padding:1rem; }
-    td { padding:1rem; border-bottom:1px solid #333; }
-    .win { background:#002200; }
-    .loss { background:#330000; }
-    .wrestler { background:#001122; }
-    footer { padding:2rem; color:#666; }
-    @media (prefers-color-scheme: light) { body { background:#f0f0f0; color:#000; } .win { background:#ccffcc; } .loss { background:#ffcccc; } }
+    body { margin:0; background:#000; color:#fff; font-family:Arial; text-align:center; background:linear-gradient(#003366,#000); }
+    header { padding:2rem; }
+    h1 { font-size:3rem; color:#00ff41; }
+    .record { font-size:3rem; color:#00ff41; }
+    .dual { background:#111; margin:2rem auto; max-width:900px; padding:1rem; border-radius:10px; }
+    .win .header { background:#004400; }
+    .loss .header { background:#440000; }
+    table { width:100%; border-collapse:collapse; margin-top:1rem; }
+    th, td { padding:0.8rem; border:1px solid #333; }
+    .win-bg { background:#002200; }
+    .loss-bg { background:#330000; }
   </style>
 </head>
 <body>
   <header>
     <h1>SHAWNEE WRESTLING</h1>
-    <div class Discussions: 1–1</div>
-    <div class="update">Last updated: <span id="updated">Just now</span></div>
+    <div class="record" id="record">0–0</div>
+    <div>Last updated: <span id="updated"></span></div>
   </header>
-
-  <h2>Dual Meet Results</h2>
-  <table id="duals"><tr><th>Date</th><th>Opponent</th><th>Score</th><th>Result</th></tr></table>
-
-  <h2>Individual Records</h2>
-  <table id="individuals"><tr><th>Name</th><th>Weight</th><th>Record</th><th>Points</th></tr></table>
-
-  <footer>
-    Shawnee Renegades • Medford, NJ<br>
-    Auto-updated nightly from Trackwrestling
-  </footer>
+  
+  <div id="content">Loading live box scores...</div>
 
   <script>
-    fetch('data.json').then(r=>r.json()).then(d=>{
-      document.getElementById('updated').innerText = new Date().toLocaleString();
-      document.querySelector('.record').innerText = d.dualRecord;
-      d.duals.forEach(m=>{ document.getElementById('duals').innerHTML += `<tr class="${m.result==='W'?'win':'loss'}"><td>${m.date}</td><td>${m.opponent}</td><td>${m.score}</td><td>${m.result}</td></tr>`; });
-      d.individuals.forEach(w=>{ document.getElementById('individuals').innerHTML += `<tr class="wrestler"><td>${w.name}</td><td>${w.weight}</td><td>${w.record}</td><td>${w.points}</td></tr>`; });
+    fetch('data.json').then(r => r.json()).then(d => {
+      document.getElementById('updated').innerText = d.lastUpdated;
+      document.getElementById('record').innerText = d.dualRecord;
+      
+      let html = `<h2 style="color:#00ff41">Dual Meet Results (${d.dualRecord})</h2>`;
+      d.duals.forEach(dual => {
+        html += `<div class="dual ${dual.result==='W'?'win':'loss'}">
+          <div class="header"><strong>${dual.date} @ ${dual.opponent}</strong> → ${dual.score}</div>
+          <table>
+            <tr><th>Wt</th><th>Shawnee</th><th>Result</th><th>Opp</th><th>Pts</th></tr>`;
+        dual.matches.forEach(m => {
+          const rowClass = m.shawneeWin ? 'win-bg' : 'loss-bg';
+          html += `<tr class="${rowClass}">
+            <td>${m.weight}</td>
+            <td>${m.winner}</td>
+            <td><strong>${m.result}</strong></td>
+            <td>${m.loser}</td>
+            <td>${m.points}</td>
+          </tr>`;
+        });
+        html += `</table></div>`;
+      });
+      document.getElementById('content').innerHTML = html;
     });
   </script>
 </body>
