@@ -1,57 +1,252 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Shawnee Wrestling 2024-25</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { margin:0; background:#000; color:#fff; font-family:Arial; text-align:center; background:linear-gradient(#003366,#000); }
-    header { padding:2rem; }
-    h1 { font-size:3rem; color:#00ff41; }
-    .record { font-size:3rem; color:#00ff41; }
-    .dual { background:#111; margin:2rem auto; max-width:900px; padding:1rem; border-radius:10px; }
-    .win .header { background:#004400; }
-    .loss .header { background:#440000; }
-    table { width:100%; border-collapse:collapse; margin-top:1rem; }
-    th, td { padding:0.8rem; border:1px solid #333; }
-    .win-bg { background:#002200; }
-    .loss-bg { background:#330000; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shawnee Wrestling</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        header {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .section h2 {
+            color: #1e3c72;
+            margin-bottom: 1.5rem;
+            border-bottom: 3px solid #ffd700;
+            padding-bottom: 0.5rem;
+        }
+        
+        .roster-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .wrestler-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        
+        .wrestler-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .wrestler-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .wrestler-info {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        table th, table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        table th {
+            background: #1e3c72;
+            color: white;
+            font-weight: 600;
+        }
+        
+        table tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 1rem;
+            border-radius: 5px;
+        }
+        
+        .last-updated {
+            text-align: right;
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>SHAWNEE WRESTLING</h1>
-    <div class="record" id="record">0–0</div>
-    <div>Last updated: <span id="updated"></span></div>
-  </header>
-  
-  <div id="content">Loading live box scores...</div>
-
-  <script>
-    fetch('data.json').then(r => r.json()).then(d => {
-      document.getElementById('updated').innerText = d.lastUpdated;
-      document.getElementById('record').innerText = d.dualRecord;
-      
-      let html = `<h2 style="color:#00ff41">Dual Meet Results (${d.dualRecord})</h2>`;
-      d.duals.forEach(dual => {
-        html += `<div class="dual ${dual.result==='W'?'win':'loss'}">
-          <div class="header"><strong>${dual.date} @ ${dual.opponent}</strong> → ${dual.score}</div>
-          <table>
-            <tr><th>Wt</th><th>Shawnee</th><th>Result</th><th>Opp</th><th>Pts</th></tr>`;
-        dual.matches.forEach(m => {
-          const rowClass = m.shawneeWin ? 'win-bg' : 'loss-bg';
-          html += `<tr class="${rowClass}">
-            <td>${m.weight}</td>
-            <td>${m.winner}</td>
-            <td><strong>${m.result}</strong></td>
-            <td>${m.loser}</td>
-            <td>${m.points}</td>
-          </tr>`;
+    <header>
+        <h1>🤼 Shawnee Wrestling 🤼</h1>
+        <p>Renegades Wrestling Team</p>
+    </header>
+    
+    <div class="container">
+        <!-- Roster Section -->
+        <div class="section">
+            <h2>Team Roster</h2>
+            <div id="roster-container" class="roster-grid">
+                <div class="loading">Loading roster...</div>
+            </div>
+        </div>
+        
+        <!-- Schedule Section -->
+        <div class="section">
+            <h2>Schedule & Results</h2>
+            <div id="schedule-container">
+                <div class="loading">Loading schedule...</div>
+            </div>
+        </div>
+        
+        <div class="last-updated" id="last-updated"></div>
+    </div>
+    
+    <script>
+        // Load roster data
+        async function loadRoster() {
+            try {
+                const response = await fetch('data/roster.json');
+                const wrestlers = await response.json();
+                
+                const container = document.getElementById('roster-container');
+                
+                if (!wrestlers || wrestlers.length === 0) {
+                    container.innerHTML = '<p>No roster data available yet.</p>';
+                    return;
+                }
+                
+                container.innerHTML = wrestlers.map(wrestler => `
+                    <div class="wrestler-card">
+                        <div class="wrestler-name">${wrestler.name || 'N/A'}</div>
+                        <div class="wrestler-info">
+                            ${wrestler.weight ? `Weight: ${wrestler.weight} lbs` : ''}<br>
+                            ${wrestler.year || ''}<br>
+                            ${wrestler.record ? `Record: ${wrestler.record}` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading roster:', error);
+                document.getElementById('roster-container').innerHTML = 
+                    '<div class="error">Unable to load roster data. Please try again later.</div>';
+            }
+        }
+        
+        // Load schedule data
+        async function loadSchedule() {
+            try {
+                const response = await fetch('data/schedule.json');
+                const matches = await response.json();
+                
+                const container = document.getElementById('schedule-container');
+                
+                if (!matches || matches.length === 0) {
+                    container.innerHTML = '<p>No schedule data available yet.</p>';
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Opponent</th>
+                                <th>Location</th>
+                                <th>Result</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${matches.map(match => `
+                                <tr>
+                                    <td>${match.date || 'TBD'}</td>
+                                    <td>${match.opponent || 'TBD'}</td>
+                                    <td>${match.location || 'TBD'}</td>
+                                    <td>${match.result || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+                document.getElementById('schedule-container').innerHTML = 
+                    '<div class="error">Unable to load schedule data. Please try again later.</div>';
+            }
+        }
+        
+        // Load last updated timestamp
+        async function loadTimestamp() {
+            try {
+                const response = await fetch('data/complete.json');
+                const data = await response.json();
+                
+                if (data.last_updated) {
+                    const date = new Date(data.last_updated);
+                    document.getElementById('last-updated').textContent = 
+                        `Last updated: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                }
+            } catch (error) {
+                console.error('Error loading timestamp:', error);
+            }
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRoster();
+            loadSchedule();
+            loadTimestamp();
         });
-        html += `</table></div>`;
-      });
-      document.getElementById('content').innerHTML = html;
-    });
-  </script>
+    </script>
 </body>
 </html>
