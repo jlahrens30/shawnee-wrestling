@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shawnee Wrestling</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        header {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .section h2 {
+            color: #1e3c72;
+            margin-bottom: 1.5rem;
+            border-bottom: 3px solid #ffd700;
+            padding-bottom: 0.5rem;
+        }
+        
+        .roster-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .wrestler-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        
+        .wrestler-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .wrestler-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .wrestler-info {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        table th, table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        table th {
+            background: #1e3c72;
+            color: white;
+            font-weight: 600;
+        }
+        
+        table tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 1rem;
+            border-radius: 5px;
+        }
+        
+        .last-updated {
+            text-align: right;
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🤼 Shawnee Wrestling 🤼</h1>
+        <p>Renegades Wrestling Team</p>
+    </header>
+    
+    <div class="nav" style="background: rgba(255, 255, 255, 0.95); padding: 1rem; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <a href="matches.html" style="color: #1e3c72; text-decoration: none; padding: 0.5rem 1.5rem; margin: 0 0.5rem; border-radius: 5px; font-weight: 600; background: #ffd700;">View Detailed Match Results →</a>
+    </div>
+    
+    <div class="container">
+        <!-- Roster Section -->
+        <div class="section">
+            <h2>Team Roster</h2>
+            <div id="roster-container" class="roster-grid">
+                <div class="loading">Loading roster...</div>
+            </div>
+        </div>
+        
+        <!-- Schedule Section -->
+        <div class="section">
+            <h2>Schedule & Results</h2>
+            <div id="schedule-container">
+                <div class="loading">Loading schedule...</div>
+            </div>
+        </div>
+        
+        <div class="last-updated" id="last-updated"></div>
+    </div>
+    
+    <script>
+        // Load roster data
+        async function loadRoster() {
+            try {
+                const response = await fetch('data/roster.json');
+                const wrestlers = await response.json();
+                
+                const container = document.getElementById('roster-container');
+                
+                if (!wrestlers || wrestlers.length === 0) {
+                    container.innerHTML = '<p>No roster data available yet.</p>';
+                    return;
+                }
+                
+                container.innerHTML = wrestlers.map(wrestler => `
+                    <div class="wrestler-card">
+                        <div class="wrestler-name">${wrestler.name || 'N/A'}</div>
+                        <div class="wrestler-info">
+                            ${wrestler.weight ? `Weight: ${wrestler.weight} lbs` : ''}<br>
+                            ${wrestler.year || ''}<br>
+                            ${wrestler.record ? `Record: ${wrestler.record}` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading roster:', error);
+                document.getElementById('roster-container').innerHTML = 
+                    '<div class="error">Unable to load roster data. Please try again later.</div>';
+            }
+        }
+        
+        // Load schedule data
+        async function loadSchedule() {
+            try {
+                const response = await fetch('data/schedule.json');
+                const matches = await response.json();
+                
+                const container = document.getElementById('schedule-container');
+                
+                if (!matches || matches.length === 0) {
+                    container.innerHTML = '<p>No schedule data available yet.</p>';
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Opponent</th>
+                                <th>Location</th>
+                                <th>Result</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${matches.map(match => `
+                                <tr>
+                                    <td>${match.date || 'TBD'}</td>
+                                    <td>${match.opponent || 'TBD'}</td>
+                                    <td>${match.location || 'TBD'}</td>
+                                    <td>${match.result || '-'}</td>
+                                    <td>${match.url ? `<a href="${match.url}" target="_blank" style="color: #1e3c72; text-decoration: none;">View Match →</a>` : '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+                document.getElementById('schedule-container').innerHTML = 
+                    '<div class="error">Unable to load schedule data. Please try again later.</div>';
+            }
+        }
+        
+        // Load last updated timestamp
+        async function loadTimestamp() {
+            try {
+                const response = await fetch('data/complete.json');
+                const data = await response.json();
+                
+                if (data.last_updated) {
+                    const date = new Date(data.last_updated);
+                    document.getElementById('last-updated').textContent = 
+                        `Last updated: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                }
+            } catch (error) {
+                console.error('Error loading timestamp:', error);
+            }
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRoster();
+            loadSchedule();
+            loadTimestamp();
+        });
+    </script>
+</body>
+</html>
