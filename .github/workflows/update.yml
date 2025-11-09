@@ -3,16 +3,28 @@ on:
   schedule:
     - cron: '0 7 * * *'
   workflow_dispatch:
+
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run Scraper
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install Chrome + Selenium
         run: |
-          curl -s https://raw.githubusercontent.com/grok-help/shawnee-wrestling/main/scraper.py > scraper.py
-          python scraper.py
-      - name: Commit
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          pip install selenium==4.15.2
+          
+      - name: Run scraper
+        run: python scraper.py
+        
+      - name: Commit & Push
         run: |
           git config user.name "Shawnee Bot"
           git config user.email "bot@shawnee.wrestling"
