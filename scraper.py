@@ -1,62 +1,35 @@
-import re, json, urllib.request
+import re, json, urllib.request, time
 from datetime import datetime
 from collections import defaultdict
 
+SEASON_ID = "842514138"
 TEAM_ID = "1441922147"
-BASE = "https://www.trackwrestling.com"
+BASE = "https://www.trackwrestling.com/tw/seasons"
+
+# The EXACT URL you gave
+schedule_url = f"{BASE}/LoadBalance.jsp?seasonId={SEASON_ID}&gbId=36&pageName=TeamSchedule.jsp;teamId={TEAM_ID}"
 
 def fetch(url):
-    return urllib.request.urlopen(url).read().decode()
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    return urllib.request.urlopen(req).read().decode('utf-8', errors='ignore')
 
-# Duals
-dual_html = fetch(f"{BASE}/seasons/TeamSchedule.jsp?TIM=1762653631219&twSessionId=zssjzefbcl&teamId={TEAM_ID}")
-dual_js = re.search(r'initDataGrid\(1000, false, "(\[\[.*?\]\])"', dual_html).group(1)
-dual_js = dual_js.replace('\\"', '"')
-duals = json.loads(dual_js)
+print("Fetching 2024-25 Team Schedule...")
+html = fetch(schedule_url)
 
-# Individual matches
-match_html = fetch(f"{BASE}/seasons/TeamSchedule.jsp?TIM=1762653631219&twSessionId=zssjzefbcl&teamId={TEAM_ID}&eventType=1")
-match_js = re.search(r'initDataGrid\(1000, false, "(\[\[.*?\]\])"', match_html)
-matches = json.loads(match_js.group(1).replace('\\"', '"')) if match_js else []
+# Extract dual links from the season schedule page
+dual_links = re.findall(r'href="(/tw/seasons/DualResults\.jsp\?eventId=(\d+)&teamId=\d+)">([^<]+)</a>', html)
+# Fallback to initDataGrid if no HTML links
+if not dual_links:
+    js_match = re.search(r'initDataGrid\(1000, false, "(\[\[.*?\]\])"', html)
+    if js_match:
+        raw = js_match.group(1).replace('\\"', '"')
+        data = json.loads(raw)
+        dual_links = [(f"/tw/seasons/DualResults.jsp?eventId={row[8]}&teamId={TEAM_ID}", row[8], row[2]) for row in data]
 
-# Parse duals
-dual_list = []
-wins = losses = 0
-for d in duals:
-    date = datetime.strptime(d[3], "%Y%m%d").strftime("%m/%d")
-    shawnee_score = d[19] if d[16]=='Shawnee' else d[22]
-    opp_score = d[22] if d[16]=='Shawnee' else d[19]
-    result = "W" if shawnee_score > opp_score else "L"
-    if result == "W": wins += 1
-    else: losses += 1
-    opp = d[2].split(" vs ")[0].replace(", NJ","").replace("West Windsor-Plainsboro North","WW-P North")
-    dual_list.append({"date":date, "opponent":opp, "score":f"{shawnee_score}-{opp_score}", "result":result})
+all_duals = []
+total_wins = total_losses = 0
+wrestlers = defaultdict(lambda: {"wins":0, "losses":0, "points":0.0, "weight":""})
 
-# Parse individuals
-wrestlers = defaultdict(lambda: {"wins":0,"losses":0,"points":0.0,"weight":""})
-for m in matches:
-    w1 = f"{m[16]} {m[17]}".strip()
-    w2 = f"{m[20]} {m[21]}".strip()
-    winner = w1 if m[14] == m[14] else w2
-    loser = w2 if winner == w1 else w1
-    weight = m[1]
-    if "Shawnee" in (m[18] if winner == w1 else m[22]):
-        wrestlers[winner]["wins"] += 1
-        wrestlers[winner]["points"] += float(m[33]) if m[33] not in ["",None] else 0
-        wrestlers[winner]["weight"] = weight
-    else:
-        wrestlers[loser]["losses"] += 1
-        wrestlers[loser]["weight"] = weight
-
-ind_list = [{"name":name, "weight":d["weight"], "record":f"{d['wins']}-{d['losses']}", "points":d["points"]} for name,d in wrestlers.items()]
-ind_list.sort(key=lambda x: int(x["weight"] or 999))
-
-# Save
-data = {"dualRecord": f"{wins}–{losses}", "duals": dual_list, "individuals": ind_list}
-with open("data.json","w") as f: json.dump(data, f)
-
-with open("index.html") as f: html = f.read()
-html = re.sub(r'<div class="record">.*?</div>', f'<div class="record">{wins}–{losses}</div>', html)
-with open("index.html","w") as f: f.write(html)
-
-print("Site updated!")
+for link_path, event_id, title in dual_links:
+    date_match = re.search(r'(\d{1,2}/\d{1,2}(/\d{4})?)', title)
+    date = date_match.group(1) if date_match else datetime.now().strftime("%m/%d
