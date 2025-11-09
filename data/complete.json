@@ -1,0 +1,25 @@
+{
+  "last_updated": "2025-11-09T06:56:39.247897",
+  "team_id": "1441922147",
+  "season_id": "842514138",
+  "roster": [],
+  "schedule": [
+    {
+      "date": "TBD",
+      "opponent": "Error loading matches",
+      "location": "TBD",
+      "result": "-",
+      "dualId": "0000000000",
+      "url": "https://www.trackwrestling.com/tw/seasons/LoadBalance.jsp?seasonId=842514138&gbId=36&pageName=TeamSchedule.jsp;teamId=1441922147"
+    }
+  ],
+  "match_details": [
+    {
+      "dualId": "0000000000",
+      "opponent": "Error loading matches",
+      "date": "TBD",
+      "location": "TBD",
+      "url": "https://www.trackwrestling.com/tw/seasons/LoadBalance.jsp?seasonId=842514138&gbId=36&pageName=TeamSchedule.jsp;teamId=1441922147"
+    }
+  ]
+}
