@@ -9,13 +9,13 @@ def fetch(url):
     return urllib.request.urlopen(url).read().decode()
 
 # Duals
-dual_html = fetch(f"{BASE}/teamprofile/TeamMatches.jsp?teamId={TEAM_ID}")
+dual_html = fetch(f"{BASE}/seasons/TeamSchedule.jsp?TIM=1762653631219&twSessionId=zssjzefbcl&teamId={TEAM_ID}")
 dual_js = re.search(r'initDataGrid\(1000, false, "(\[\[.*?\]\])"', dual_html).group(1)
 dual_js = dual_js.replace('\\"', '"')
 duals = json.loads(dual_js)
 
 # Individual matches
-match_html = fetch(f"{BASE}/teamprofile/TeamMatches.jsp?teamId={TEAM_ID}&eventType=1")
+match_html = fetch(f"{BASE}/seasons/TeamSchedule.jsp?TIM=1762653631219&twSessionId=zssjzefbcl&teamId={TEAM_ID}&eventType=1")
 match_js = re.search(r'initDataGrid\(1000, false, "(\[\[.*?\]\])"', match_html)
 matches = json.loads(match_js.group(1).replace('\\"', '"')) if match_js else []
 
