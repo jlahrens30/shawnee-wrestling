@@ -1,104 +1,88 @@
-import json
-import re
-import time
-from datetime import datetime
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+import time
+import json
+from datetime import datetime
+from bs4 import BeautifulSoup
 
 options = Options()
 options.add_argument('--headless')
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
-options.add_argument('--disable-gpu')
-options.add_argument('--window-size=1920,1080')
-options.add_argument('--disable-extensions')
-options.add_argument('--disable-logging')
-options.add_argument('--disable-sync')
-
 driver = webdriver.Chrome(options=options)
 
 try:
-    print("Opening Trackwrestling season page...")
-    driver.get("https://www.trackwrestling.com/tw/seasons/LoadBalance.jsp?seasonId=842514138&gbId=36&pageName=TeamSchedule.jsp;teamId=1441922147")
+    url = "https://www.trackwrestling.com/tw/seasons/LoadBalance.jsp?seasonId=842514138&gbId=36&pageName=PrintWrestlerMatches.jsp;teamId=1441922147"
+    driver.get(url)
     time.sleep(8)
 
-    html = driver.page_source
-    print(f"Page loaded: {len(html)} characters")
+    iframe = WebDriverWait(driver, 15).until(
+        EC.presence_of_element_located((By.ID, "PageFrame"))
+    )
+    driver.switch_to.frame(iframe)
 
-    grid = re.search(r'initDataGrid\(1000, false, "(\[\[.*?\]\])"', html)
-    if not grid:
-        raise Exception("No schedule grid found!")
+    # Select all wrestlers
+    driver.execute_script("document.getElementById('wrestlers').multiple = 'multiple'")
+    time.sleep(1)
+    driver.find_element(By.ID, "wrestlers").send_keys(Keys.SHIFT + Keys.END)
+
+    # Select Varsity
+    driver.find_element(By.XPATH, '//*[@id="levels"]/option[text()="Varsity"]').click()
     
-    print("Schedule grid found!")
-    events = json.loads(grid.group(1).replace('\\"', '"'))
+    # Select All Events
+    driver.find_element(By.XPATH, '//select[@id="eventIds"]/option[1]').click()
 
-    duals_to_scrape = []
-    for e in events:
-        if len(e) > 21 and e[18] and e[21]:
-            dual_id = e[0]
-            name = e[2]
-            date = f"{e[3][:4]}-{e[3][4:6]}-{e[3][6:8]}"
-            shawnee_score = e[21] if e[16] == "Shawnee" else e[18]
-            opp_score = e[18] if e[16] == "Shawnee" else e[21]
-            duals_to_scrape.append((dual_id, name, date, int(shawnee_score), int(opp_score)))
+    # Click Print
+    driver.find_element(By.XPATH, '//input[@value="Print"]').click()
+    time.sleep(10)
 
-    print(f"Found {len(duals_to_scrape)} duals with results")
+    # Get printed page
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    tables = soup.find_all('table')
 
-    all_duals = []
-    for dual_id, name, date, shawnee_total, opp_total in duals_to_scrape:
-        print(f"Scraping dual {dual_id}...")
-        driver.get(f"https://www.trackwrestling.com/tw/seasons/LoadBalance.jsp?seasonId=842514138&pageName=DualMatches.jsp&dualId={dual_id}")
-        time.sleep(6)
+    duals = []
+    current_dual = None
 
-        html = driver.page_source
-        grid = re.search(r'initDataGrid\(1000, false, "(\[\[.*?\]\])"', html)
-        if not grid:
-            continue
+    for table in tables:
+        rows = table.find_all('tr')
+        for row in rows:
+            cells = row.find_all('td')
+            if len(cells) >= 6 and "vs" in cells[0].text:
+                if current_dual:
+                    duals.append(current_dual)
+                current_dual = {
+                    "opponent": cells[0].text.strip().replace("Shawnee vs ", "").replace(" at ", ""),
+                    "date": cells[1].text.strip(),
+                    "score": cells[2].text.strip(),
+                    "result": "W" if "Win" in cells[3].text else "L",
+                    "matches": []
+                }
+            elif current_dual and len(cells) >= 5:
+                current_dual["matches"].append({
+                    "weight": cells[0].text.strip(),
+                    "shawnee": cells[1].text.strip(),
+                    "result": cells[2].text.strip(),
+                    "opponent": cells[3].text.strip(),
+                    "points": cells[4].text.strip()
+                })
 
-        bouts = json.loads(grid.group(1).replace('\\"', '"'))
-        matches = []
-
-        for b in bouts:
-            weight = b[16]
-            winner = f"{b[20]} {b[21]}".strip()
-            loser = f"{b[24]} {b[25]}".strip()
-            winner_team = b[22]
-            result = b[4]
-            points = float(b[7]) if b[7] else 0.0
-            is_shawnee_win = "SHAW" in winner_team or "Shawnee" in winner_team
-
-            matches.append({
-                "weight": weight,
-                "winner": winner if is_shawnee_win else loser,
-                "loser": loser if is_shawnee_win else winner,
-                "result": result,
-                "points": points,
-                "shawneeWin": is_shawnee_win
-            })
-
-        all_duals.append({
-            "date": date,
-            "opponent": name.split(" vs ")[0].split(" @ ")[0].replace("Shawnee", "").strip(),
-            "score": f"{shawnee_total}–{opp_total}",
-            "result": "W" if shawnee_total > opp_total else "L",
-            "matches": matches
-        })
-
-    wins = sum(1 for d in all_duals if d["result"] == "W")
-    losses = len(all_duals) - wins
+    if current_dual:
+        duals.append(current_dual)
 
     data = {
-        "season": "2024-25",
-        "dualRecord": f"{wins}–{losses}",
-        "duals": all_duals,
+        "dualRecord": f"{sum(1 for d in duals if d['result']=='W')}–{sum(1 for d in duals if d['result']=='L')}",
+        "duals": duals,
         "lastUpdated": datetime.now().strftime("%m/%d %I:%M %p")
     }
 
     with open("data.json", "w") as f:
         json.dump(data, f, indent=2)
 
-    print(f"SUCCESS! {len(all_duals)} duals saved → https://shawnee-wrestling.github.io")
+    print("SUCCESS! Full data saved from PrintWrestlerMatches")
 
 finally:
     driver.quit()
